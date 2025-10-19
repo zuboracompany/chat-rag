@@ -1,0 +1,9 @@
+streamlit
+langchain
+langchain-google-genai
+google-generativeai
+langchain-pinecone
+pypdf
+python-dotenv
+tiktoken
+pinecone-client
