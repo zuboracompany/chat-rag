@@ -15,30 +15,43 @@ st.set_page_config(page_title="My RAG Chatbot (Pinecone)", layout="wide")
 st.title("📄 ドキュメントQ&Aチャットボット (Pinecone版)")
 st.markdown("""
 このアプリは、アップロードしたPDFの内容について質問できるチャットボットです。
-左のサイドバーからAPIキー等を設定し、PDFをアップロードして「学習を開始」ボタンを押してください。
+**Render/Vercelの環境変数**にAPIキー等を設定してからご利用ください。
 """)
 st.info("**注意:** Geminiの埋め込みモデル (`embedding-001`) は768次元です。PineconeでIndexを作成する際は、次元数(Dimensions)を`768`に設定してください。")
 
 
-# --- APIキーと設定 ---
+# --- 環境変数からAPIキーを読み込む ---
+google_api_key = os.environ.get("GOOGLE_API_KEY")
+pinecone_api_key = os.environ.get("PINECONE_API_KEY")
+pinecone_index_name = os.environ.get("PINECONE_INDEX_NAME")
+
+# --- サイドバーUI ---
 with st.sidebar:
-    st.header("APIキー設定")
-    # 環境変数から取得することを推奨
-    google_api_key = st.text_input("Google API Key", type="password", value=os.environ.get("GOOGLE_API_KEY", ""))
-    pinecone_api_key = st.text_input("Pinecone API Key", type="password", value=os.environ.get("PINECONE_API_KEY", ""))
-    pinecone_index_name = st.text_input("Pinecone Index Name", value=os.environ.get("PINECONE_INDEX_NAME", ""))
+    st.header("設定ステータス")
+    # 環境変数が設定されているかどうかのステータスのみ表示
+    if google_api_key and pinecone_api_key and pinecone_index_name:
+        st.success("APIキーが環境変数から読み込まれました。")
+    else:
+        st.error("必要なAPIキーが環境変数に設定されていません。")
+        st.markdown("""
+        **Render/Vercelのダッシュボードで以下の環境変数を設定してください:**
+        - `GOOGLE_API_KEY`
+        - `PINECONE_API_KEY`
+        - `PINECONE_INDEX_NAME`
+        """)
 
     st.header("ドキュメントのアップロード")
     uploaded_file = st.file_uploader("PDFファイルをアップロードしてください", type=['pdf'])
-
-    # process_button
-    process_button = st.button("学習を開始", disabled=not uploaded_file)
+    
+    # APIキーがすべて設定されている場合のみボタンを有効化
+    is_ready = bool(google_api_key and pinecone_api_key and pinecone_index_name and uploaded_file)
+    process_button = st.button("学習を開始", disabled=not is_ready)
 
 
 # --- メイン処理 ---
 # APIキーが設定されていない場合は処理を中断
 if not google_api_key or not pinecone_api_key or not pinecone_index_name:
-    st.warning("左のサイドバーで全てのAPIキーとIndex名を設定してください。")
+    st.warning("処理を開始するには、まず環境変数を設定してください。")
     st.stop()
 
 # LangChainのモデルとVectorStoreを初期化
